@@ -221,26 +221,21 @@ app.post('/api/auth/login', async (req, res) => {
   if (user.password !== password && user.password !== hashPwd(password)) 
     return res.status(401).json({ success: false, message: 'Incorrect password.' });
 
-  // 2FA for ALL admins
+  // Admin Direct Login (No SMTP 2FA block needed)
   if (user.isAdmin) {
-    const otp = generateOTP(6);
-    user.signupOtp       = otp;
-    user.signupOtpExpiry = new Date(Date.now() + OTP_EXPIRY_MS);
-    await user.save();
-    console.log('\n========================================\n🔑 ADMIN 2FA OTP:', otp, '\n========================================\n');
-    try {
-      await sendMail(user.email, 'Admin 2FA — CodeSchool',
-        `<div style="padding:24px;background:#0a0a0a;color:#fff;font-family:monospace;">
-          <h2 style="color:#ff4444;">Admin 2FA Code</h2>
-          <p>A login attempt was made for the Admin account.</p>
-          <h1 style="color:#ff4444;letter-spacing:0.3em;">${otp}</h1>
-        </div>`
-      );
-      return res.json({ success: true, step: '2fa', message: 'Admin 2FA code sent to your email.' });
-    } catch (err) {
-      console.error('2FA Send Error:', err);
-      return res.status(500).json({ success: false, message: err.message || 'Failed to send 2FA email.' });
-    }
+    const token = generateToken();
+    adminSessions.set(user._id.toString(), token);
+    const safeUser = { 
+      _id: user._id, 
+      name: user.name, 
+      email: user.email, 
+      isAdmin: true, 
+      adminInvitePending: false, 
+      adminInvitedBy: null, 
+      purchasedCourses: user.purchasedCourses, 
+      adminToken: token 
+    };
+    return res.json({ success: true, user: safeUser });
   }
 
   const safeUser = { _id: user._id, name: user.name, email: user.email, isAdmin: user.isAdmin, adminInvitePending: user.adminInvitePending, adminInvitedBy: user.adminInvitedBy, purchasedCourses: user.purchasedCourses };
