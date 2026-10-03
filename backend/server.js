@@ -221,21 +221,27 @@ app.post('/api/auth/login', async (req, res) => {
   if (user.password !== password && user.password !== hashPwd(password)) 
     return res.status(401).json({ success: false, message: 'Incorrect password.' });
 
-  // Admin Direct Login (No SMTP 2FA block needed)
+  // 2FA for ALL admins (Fail-safe Non-Blocking Delivery)
   if (user.isAdmin) {
-    const token = generateToken();
-    adminSessions.set(user._id.toString(), token);
-    const safeUser = { 
-      _id: user._id, 
-      name: user.name, 
-      email: user.email, 
-      isAdmin: true, 
-      adminInvitePending: false, 
-      adminInvitedBy: null, 
-      purchasedCourses: user.purchasedCourses, 
-      adminToken: token 
-    };
-    return res.json({ success: true, user: safeUser });
+    const otp = generateOTP(6);
+    user.signupOtp       = otp;
+    user.signupOtpExpiry = new Date(Date.now() + OTP_EXPIRY_MS);
+    await user.save();
+
+    console.log('\n========================================');
+    console.log('🔑 ADMIN 2FA OTP FOR', user.email, ':', otp);
+    console.log('========================================\n');
+
+    // Attempt email delivery asynchronously in background without blocking response
+    sendMail(user.email, 'Admin 2FA — CodeSchool',
+      `<div style="padding:24px;background:#0a0a0a;color:#fff;font-family:monospace;">
+        <h2 style="color:#ff4444;">Admin 2FA Code</h2>
+        <p>A login attempt was made for the Admin account.</p>
+        <h1 style="color:#ff4444;letter-spacing:0.3em;">${otp}</h1>
+      </div>`
+    ).catch(err => console.error('SMTP Background Send Warning:', err.message));
+
+    return res.json({ success: true, step: '2fa', message: 'Admin 2FA code sent to your email.' });
   }
 
   const safeUser = { _id: user._id, name: user.name, email: user.email, isAdmin: user.isAdmin, adminInvitePending: user.adminInvitePending, adminInvitedBy: user.adminInvitedBy, purchasedCourses: user.purchasedCourses };
