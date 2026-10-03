@@ -14,16 +14,7 @@ app.use(express.json());
 // ============================================================
 
 // ============================================================
-// SYSTEM CACHE (Optimization 1)
-// ============================================================
-const Cache = {
-  courses: null,
-  lastFetched: 0,
-  TTL_MS: 5 * 60 * 1000 // 5 minutes
-};
-
-// ============================================================
-// SCHEMAS & INDEXING (Optimization 2)
+// SCHEMAS & INDEXING
 // ============================================================
 
 const purchasedCourseSchema = new mongoose.Schema({
@@ -165,17 +156,7 @@ const isAdmin = async (req, res, next) => {
 
 app.get('/api/courses', async (req, res) => {
   try {
-    // CACHE HIT: Return from RAM instantly if within TTL
-    if (Cache.courses && Date.now() - Cache.lastFetched < Cache.TTL_MS) {
-      return res.json(Cache.courses);
-    }
-    
-    // CACHE MISS: Query DB, then store in RAM
-    // (Uses the new compound index we just added)
     const courses = await Course.find({ isHidden: { $ne: true } }).sort({ createdAt: -1 });
-    Cache.courses = courses;
-    Cache.lastFetched = Date.now();
-    
     res.json(courses);
   } catch { res.status(500).json({ message: 'Failed to fetch courses' }); }
 });
@@ -563,7 +544,6 @@ app.post('/api/admin/courses', isAdmin, async (req, res) => {
     return res.status(401).json({ success: false, message: 'Invalid Admin Password.' });
   try {
     const c = await Course.create(courseData);
-    Cache.courses = null; // INVALIDATE CACHE
     res.json({ success: true, course: c });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -577,7 +557,6 @@ app.put('/api/admin/courses/:id', isAdmin, async (req, res) => {
     return res.status(401).json({ success: false, message: 'Invalid Admin Password.' });
   try {
     const c = await Course.findByIdAndUpdate(req.params.id, updateData, { new: true });
-    Cache.courses = null; // INVALIDATE CACHE
     res.json({ success: true, course: c });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -591,7 +570,6 @@ app.delete('/api/admin/courses/:id', isAdmin, async (req, res) => {
     return res.status(401).json({ success: false, message: 'Invalid Admin Password.' });
   try {
     await Course.findByIdAndDelete(req.params.id);
-    Cache.courses = null; // INVALIDATE CACHE
     // ORPHAN FIX: Remove this course from all users' purchasedCourses arrays
     await User.updateMany(
       { 'purchasedCourses.courseId': req.params.id },
