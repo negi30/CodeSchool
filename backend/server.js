@@ -126,11 +126,18 @@ mongoose.connect(process.env.MONGO_URI).then(async () => {
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
-  auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
+  auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+  connectionTimeout: 5000,
+  greetingTimeout: 5000,
+  socketTimeout: 5000
 });
 
-const sendMail = (to, subject, html) =>
-  transporter.sendMail({ from: `"CodeSchool" <${process.env.EMAIL_USER}>`, to, subject, html });
+const sendMail = async (to, subject, html) => {
+  return await Promise.race([
+    transporter.sendMail({ from: `"CodeSchool" <${process.env.EMAIL_USER || 'noreply@codeschool.com'}>`, to, subject, html }),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('Email connection timed out. Check EMAIL_USER and EMAIL_PASS on Render.')), 5000))
+  ]);
+};
 
 // Per-user admin session tokens: Map<userId, token>
 const adminSessions = new Map();
@@ -227,8 +234,9 @@ app.post('/api/auth/login', async (req, res) => {
         </div>`
       );
       return res.json({ success: true, step: '2fa', message: 'Admin 2FA code sent to your email.' });
-    } catch {
-      return res.status(500).json({ success: false, message: 'Failed to send 2FA email.' });
+    } catch (err) {
+      console.error('2FA Send Error:', err);
+      return res.status(500).json({ success: false, message: err.message || 'Failed to send 2FA email.' });
     }
   }
 
