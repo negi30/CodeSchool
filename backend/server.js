@@ -125,21 +125,12 @@ mongoose.connect(process.env.MONGO_URI).then(async () => {
 // ============================================================
 
 const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 465,
-  secure: true,
-  auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-  connectionTimeout: 8000,
-  greetingTimeout: 8000,
-  socketTimeout: 8000
+  service: 'gmail',
+  auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
 });
 
-const sendMail = async (to, subject, html) => {
-  return await Promise.race([
-    transporter.sendMail({ from: `"CodeSchool" <${process.env.EMAIL_USER || 'noreply@codeschool.com'}>`, to, subject, html }),
-    new Promise((_, reject) => setTimeout(() => reject(new Error('Email connection timed out. Check EMAIL_USER and EMAIL_PASS on Render.')), 8000))
-  ]);
-};
+const sendMail = (to, subject, html) =>
+  transporter.sendMail({ from: `"CodeSchool" <${process.env.EMAIL_USER}>`, to, subject, html });
 
 // Per-user admin session tokens: Map<userId, token>
 const adminSessions = new Map();
@@ -221,27 +212,24 @@ app.post('/api/auth/login', async (req, res) => {
   if (user.password !== password && user.password !== hashPwd(password)) 
     return res.status(401).json({ success: false, message: 'Incorrect password.' });
 
-  // 2FA for ALL admins (Fail-safe Non-Blocking Delivery)
+  // 2FA for ALL admins
   if (user.isAdmin) {
     const otp = generateOTP(6);
     user.signupOtp       = otp;
     user.signupOtpExpiry = new Date(Date.now() + OTP_EXPIRY_MS);
     await user.save();
-
-    console.log('\n========================================');
-    console.log('🔑 ADMIN 2FA OTP FOR', user.email, ':', otp);
-    console.log('========================================\n');
-
-    // Attempt email delivery asynchronously in background without blocking response
-    sendMail(user.email, 'Admin 2FA — CodeSchool',
-      `<div style="padding:24px;background:#0a0a0a;color:#fff;font-family:monospace;">
-        <h2 style="color:#ff4444;">Admin 2FA Code</h2>
-        <p>A login attempt was made for the Admin account.</p>
-        <h1 style="color:#ff4444;letter-spacing:0.3em;">${otp}</h1>
-      </div>`
-    ).catch(err => console.error('SMTP Background Send Warning:', err.message));
-
-    return res.json({ success: true, step: '2fa', message: 'Admin 2FA code sent to your email.' });
+    try {
+      await sendMail(user.email, 'Admin 2FA — CodeSchool',
+        `<div style="padding:24px;background:#0a0a0a;color:#fff;font-family:monospace;">
+          <h2 style="color:#ff4444;">Admin 2FA Code</h2>
+          <p>A login attempt was made for the Admin account.</p>
+          <h1 style="color:#ff4444;letter-spacing:0.3em;">${otp}</h1>
+        </div>`
+      );
+      return res.json({ success: true, step: '2fa', message: 'Admin 2FA code sent to your email.' });
+    } catch {
+      return res.status(500).json({ success: false, message: 'Failed to send 2FA email.' });
+    }
   }
 
   const safeUser = { _id: user._id, name: user.name, email: user.email, isAdmin: user.isAdmin, adminInvitePending: user.adminInvitePending, adminInvitedBy: user.adminInvitedBy, purchasedCourses: user.purchasedCourses };
