@@ -248,12 +248,6 @@ app.post('/api/auth/send-otp', async (req, res) => {
   const existing = await User.findOne({ email: cleanEmail });
   if (existing) return res.status(409).json({ success: false, message: 'Email already registered.' });
 
-  // FIX 4: Rate Limiting to prevent SMTP spam (60-second cooldown)
-  const pending = pendingSignups[cleanEmail];
-  if (pending && Date.now() - pending.lastSent < 60000) {
-    return res.status(429).json({ success: false, message: 'Please wait 60 seconds before requesting another code.' });
-  }
-
   const otp = generateOTP(4);
   pendingSignups[cleanEmail] = { otp, expiry: Date.now() + OTP_EXPIRY_MS, lastSent: Date.now() };
 
