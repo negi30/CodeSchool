@@ -125,17 +125,19 @@ mongoose.connect(process.env.MONGO_URI).then(async () => {
 // ============================================================
 
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 465,
+  secure: true,
   auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-  connectionTimeout: 5000,
-  greetingTimeout: 5000,
-  socketTimeout: 5000
+  connectionTimeout: 8000,
+  greetingTimeout: 8000,
+  socketTimeout: 8000
 });
 
 const sendMail = async (to, subject, html) => {
   return await Promise.race([
     transporter.sendMail({ from: `"CodeSchool" <${process.env.EMAIL_USER || 'noreply@codeschool.com'}>`, to, subject, html }),
-    new Promise((_, reject) => setTimeout(() => reject(new Error('Email connection timed out. Check EMAIL_USER and EMAIL_PASS on Render.')), 5000))
+    new Promise((_, reject) => setTimeout(() => reject(new Error('Email connection timed out. Check EMAIL_USER and EMAIL_PASS on Render.')), 8000))
   ]);
 };
 
@@ -225,6 +227,7 @@ app.post('/api/auth/login', async (req, res) => {
     user.signupOtp       = otp;
     user.signupOtpExpiry = new Date(Date.now() + OTP_EXPIRY_MS);
     await user.save();
+    console.log('\n========================================\n🔑 ADMIN 2FA OTP:', otp, '\n========================================\n');
     try {
       await sendMail(user.email, 'Admin 2FA — CodeSchool',
         `<div style="padding:24px;background:#0a0a0a;color:#fff;font-family:monospace;">
