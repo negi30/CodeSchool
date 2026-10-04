@@ -63,7 +63,7 @@ function App() {
     alert('Item added to cart!');
   };
 
-  const handleLogout = () => { setUser(null); setCart([]); navigate('/'); };
+  const handleLogout = () => { setUser(null); setCart([]); localStorage.removeItem('codeschool_user'); navigate('/'); };
 
   return (
     <div className="min-h-screen bg-[#050505] text-white selection:bg-accent selection:text-black font-sans relative overflow-hidden">

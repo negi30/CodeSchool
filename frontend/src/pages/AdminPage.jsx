@@ -275,33 +275,36 @@ export default function AdminPage({ user }) {
                     <span className="text-red-500 font-mono text-xs border border-red-500/30 px-2 py-1">{u.purchasedCourses?.length || 0} Courses</span>
                   </div>
 
-                  {u.purchasedCourses?.length > 0 ? u.purchasedCourses.map(c => (
-                    <div key={c.courseId} className="flex flex-col md:flex-row md:items-center justify-between bg-[#111] border border-gray-800 p-4 gap-4 mb-2">
-                      <p className="font-bold text-accent uppercase text-sm md:w-1/3">{c.courseId.replace(/-/g, ' ')}</p>
+                  {u.purchasedCourses?.length > 0 ? u.purchasedCourses.map(c => {
+                    const cObj = typeof c.courseId === 'object' ? c.courseId : { _id: c.courseId, title: String(c.courseId).replace(/-/g, ' ') };
+                    const cIdStr = cObj._id;
+                    return (
+                    <div key={cIdStr} className="flex flex-col md:flex-row md:items-center justify-between bg-[#111] border border-gray-800 p-4 gap-4 mb-2">
+                      <p className="font-bold text-accent uppercase text-sm md:w-1/3">{cObj.title}</p>
                       <div className="flex items-center gap-3">
                         <label className="text-xs font-mono text-gray-500 uppercase">Progress %</label>
-                        <input type="number" min="0" max="100" defaultValue={c.progress} id={`prog_${u._id}_${c.courseId}`}
+                        <input type="number" min="0" max="100" defaultValue={c.progress} id={`prog_${u._id}_${cIdStr}`}
                           className="bg-black border border-gray-700 text-white font-mono p-2 w-20 text-center outline-none focus:border-red-500"
-                          onChange={e => { const v = e.target.value; document.getElementById(`comp_${u._id}_${c.courseId}`).checked = v === '100'; if (v !== '100') document.getElementById(`comp_${u._id}_${c.courseId}`).checked = false; }} />
+                          onChange={e => { const v = e.target.value; document.getElementById(`comp_${u._id}_${cIdStr}`).checked = v === '100'; if (v !== '100') document.getElementById(`comp_${u._id}_${cIdStr}`).checked = false; }} />
                       </div>
                       <div className="flex items-center gap-2">
-                        <input type="checkbox" defaultChecked={c.completed} id={`comp_${u._id}_${c.courseId}`} className="w-5 h-5 accent-red-500"
+                        <input type="checkbox" defaultChecked={c.completed} id={`comp_${u._id}_${cIdStr}`} className="w-5 h-5 accent-red-500"
                           onChange={e => {
-                            const pi = document.getElementById(`prog_${u._id}_${c.courseId}`);
+                            const pi = document.getElementById(`prog_${u._id}_${cIdStr}`);
                             if (e.target.checked) pi.value = '100';
                             else if (pi.value === '100') { e.target.checked = true; alert('Lower progress below 100 first.'); }
                           }} />
                         <label className="text-xs font-mono text-gray-500 uppercase">Completed</label>
                       </div>
                       <button onClick={() => {
-                        const p = document.getElementById(`prog_${u._id}_${c.courseId}`).value;
-                        const done = document.getElementById(`comp_${u._id}_${c.courseId}`).checked;
-                        handleUpdateProgress(u._id, c.courseId, p, done);
+                        const p = document.getElementById(`prog_${u._id}_${cIdStr}`).value;
+                        const done = document.getElementById(`comp_${u._id}_${cIdStr}`).checked;
+                        handleUpdateProgress(u._id, cIdStr, p, done);
                       }} className="border border-red-500 text-red-500 hover:bg-red-500 hover:text-black px-4 py-2 font-mono text-xs flex items-center gap-2 transition-all uppercase">
                         <Save size={14}/> Update
                       </button>
                     </div>
-                  )) : <p className="text-gray-700 font-mono text-sm">No courses purchased.</p>}
+                  )}) : <p className="text-gray-700 font-mono text-sm">No courses purchased.</p>}
                 </div>
               ))}
             </div>

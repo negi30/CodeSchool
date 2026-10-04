@@ -115,6 +115,8 @@ mongoose.connect(process.env.MONGO_URI).then(async () => {
 // UTILITIES
 // ============================================================
 
+const makeSlug = (text) => text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
@@ -431,6 +433,7 @@ app.get('/api/admin/users', isAdmin, async (req, res) => {
   const skip = (page - 1) * limit;
 
   const users = await User.find({}, '-password -resetOtp -resetOtpExpiry -signupOtp -signupOtpExpiry')
+    .populate('purchasedCourses.courseId', 'title slug')
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit);
@@ -457,8 +460,10 @@ app.put('/api/admin/users/:userId/progress', isAdmin, async (req, res) => {
   // BOUNDARY CHECK: Ensure progress is between 0 and 100
   const safeProgress = Math.max(0, Math.min(100, parseInt(progress) || 0));
 
-  const course = user.purchasedCourses.find(c => c.courseId === courseId);
-  if (course) { course.progress = safeProgress; course.completed = completed; }
+  const course = user.purchasedCourses.find(c => String(c.courseId) === String(courseId));
+  if (!course) return res.status(404).json({ success: false, message: 'This student does not own that course.' });
+  course.progress = safeProgress;
+  course.completed = Boolean(completed) || safeProgress === 100;
   await user.save();
   res.json({ success: true });
 });
@@ -558,11 +563,15 @@ app.get('/api/admin/courses', isAdmin, async (req, res) => {
 
 // Add course
 app.post('/api/admin/courses', isAdmin, async (req, res) => {
-  const { password, ...courseData } = req.body;
+  const { password, _id, ...courseData } = req.body;
   if (!await verifyPassword(req.adminUser._id, password))
     return res.status(401).json({ success: false, message: 'Invalid Admin Password.' });
   try {
-    const c = await Course.create(courseData);
+    const slug = makeSlug(courseData.slug || courseData.title);
+    if (!slug) return res.status(400).json({ success: false, message: 'Course title is required.' });
+    if (await Course.exists({ slug }))
+      return res.status(409).json({ success: false, message: `A course with the code "${slug}" already exists. Pick a different title.` });
+    const c = await Course.create({ ...courseData, slug });
     res.json({ success: true, course: c });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
