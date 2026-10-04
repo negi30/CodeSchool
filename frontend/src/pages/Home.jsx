@@ -15,11 +15,11 @@ export default function Home({ user, updateUser }) {
   }, []);
 
   const youtubeVideos = [
-    { id: "_hdUddANh_o", title: "1 Language 1 framework | New age of learning development with AI", author: "chai aur code", views: "100K Views" },
-    { id: "V_xro1bcAuA", title: "Web Development Roadmap 2026 (Beginner to Advance)", author: "Love Babbar", views: "250K Views" },
-    { id: "EkYj0UGOeCM", title: "Web Development Is Dead in 2026?", author: "Neeraj Walia", views: "300K Views" },
-    { id: "gG0_ZN_uOjo", title: "How to learn Machine Learning like a GENIUS", author: "Tech With Tim", views: "450K Views" },
-    { id: "aSWyN7kUcXM", title: "PyTorch for Deep Learning & Machine Learning", author: "Daniel Bourke", views: "1.2M Views" },
+    { id: "r7Q2WoQb2TA", title: "1 Language 1 framework | New age of learning development with AI", author: "chai aur code", views: "100K Views" },
+    { id: "uH0T6x_1g9Y", title: "Web Development Roadmap (Beginner to Advance)", author: "Love Babbar", views: "250K Views" },
+    { id: "V2a8k7C3Fxs", title: "Web Development Is Dead?", author: "Theo - t3.gg", views: "300K Views" },
+    { id: "i_LwzRVP7bg", title: "Machine Learning for Everybody – Full Course", author: "freeCodeCamp.org", views: "5.8M Views" },
+    { id: "V_xro1bcAuA", title: "PyTorch for Deep Learning & Machine Learning", author: "Daniel Bourke", views: "1.2M Views" },
     { id: "bX2QwpjsmuA", title: "What is Multi-head Attention in Transformers", author: "AI Research", views: "85K Views" },
     { id: "jBzwzrDvZ18", title: "Python Backend Web Development Course (with Django)", author: "CodeWithTomi", views: "650K Views" }
   ];
@@ -282,7 +282,7 @@ export default function Home({ user, updateUser }) {
                 <div className="h-48 md:h-56 bg-gray-900 relative overflow-hidden flex items-center justify-center">
                   <div className="absolute inset-0 bg-gradient-to-t from-[#111] to-transparent z-10"></div>
                   <PlayCircle size={48} className="text-white/50 group-hover/card:text-accent group-hover/card:scale-110 transition-all z-20" />
-                  <img src={`https://img.youtube.com/vi/${vid.id}/maxresdefault.jpg`} className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover/card:opacity-100 transition-opacity" alt={vid.title} />
+                  <img src={`https://img.youtube.com/vi/${vid.id}/hqdefault.jpg`} className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover/card:opacity-100 transition-opacity" alt={vid.title} />
                 </div>
                 <div className="p-6 relative z-20">
                   <h3 className="font-bold text-lg mb-2 text-gray-200 group-hover/card:text-accent transition-colors line-clamp-2">{vid.title}</h3>
