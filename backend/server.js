@@ -211,37 +211,42 @@ const verifyPassword = async (userId, pwd) => {
 
 // --- LOGIN ---
 app.post('/api/auth/login', async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password) return res.status(400).json({ success: false, message: 'Email and password are required.' });
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ success: false, message: 'Email and password are required.' });
 
-  const user = await User.findOne({ email: email.toLowerCase().trim() }).populate('purchasedCourses.courseId', 'title slug image');
-  if (!user) return res.status(404).json({ success: false, message: 'Account not found. Please sign up.' });
-  
-  if (user.password !== password && user.password !== hashPwd(password)) 
-    return res.status(401).json({ success: false, message: 'Incorrect password.' });
+    const user = await User.findOne({ email: email.toLowerCase().trim() }).populate('purchasedCourses.courseId', 'title slug image');
+    if (!user) return res.status(404).json({ success: false, message: 'Account not found. Please sign up.' });
+    
+    if (user.password !== password && user.password !== hashPwd(password)) 
+      return res.status(401).json({ success: false, message: 'Incorrect password.' });
 
-  // 2FA for ALL admins
-  if (user.isAdmin) {
-    const otp = generateOTP(6);
-    user.signupOtp       = otp;
-    user.signupOtpExpiry = new Date(Date.now() + OTP_EXPIRY_MS);
-    await user.save();
-    try {
-      await sendMail(user.email, 'Admin 2FA — CodeSchool',
-        `<div style="padding:24px;background:#0a0a0a;color:#fff;font-family:monospace;">
-          <h2 style="color:#ff4444;">Admin 2FA Code</h2>
-          <p>A login attempt was made for the Admin account.</p>
-          <h1 style="color:#ff4444;letter-spacing:0.3em;">${otp}</h1>
-        </div>`
-      );
-      return res.json({ success: true, step: '2fa', message: 'Admin 2FA code sent to your email.' });
-    } catch {
-      return res.status(500).json({ success: false, message: 'Failed to send 2FA email.' });
+    // 2FA for ALL admins
+    if (user.isAdmin) {
+      const otp = generateOTP(6);
+      user.signupOtp       = otp;
+      user.signupOtpExpiry = new Date(Date.now() + OTP_EXPIRY_MS);
+      await user.save();
+      try {
+        await sendMail(user.email, 'Admin 2FA — CodeSchool',
+          `<div style="padding:24px;background:#0a0a0a;color:#fff;font-family:monospace;">
+            <h2 style="color:#ff4444;">Admin 2FA Code</h2>
+            <p>A login attempt was made for the Admin account.</p>
+            <h1 style="color:#ff4444;letter-spacing:0.3em;">${otp}</h1>
+          </div>`
+        );
+        return res.json({ success: true, step: '2fa', message: 'Admin 2FA code sent to your email.' });
+      } catch {
+        return res.status(500).json({ success: false, message: 'Failed to send 2FA email.' });
+      }
     }
-  }
 
-  const safeUser = { _id: user._id, name: user.name, email: user.email, isAdmin: user.isAdmin, adminInvitePending: user.adminInvitePending, adminInvitedBy: user.adminInvitedBy, purchasedCourses: user.purchasedCourses };
-  res.json({ success: true, user: safeUser });
+    const safeUser = { _id: user._id, name: user.name, email: user.email, isAdmin: user.isAdmin, adminInvitePending: user.adminInvitePending, adminInvitedBy: user.adminInvitedBy, purchasedCourses: user.purchasedCourses };
+    res.json({ success: true, user: safeUser });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Server error during login.' });
+  }
 });
 
 // --- ADMIN 2FA VERIFY ---
@@ -343,27 +348,32 @@ app.post('/api/auth/forgot-password', async (req, res) => {
 
 // --- FORGOT PASSWORD: VERIFY OTP + SET NEW PASSWORD ---
 app.post('/api/auth/reset-password', async (req, res) => {
-  const { email, otp, newPassword } = req.body;
-  const user = await User.findOne({ email: email?.toLowerCase().trim() });
-  if (!user || !user.resetOtp || user.resetOtpExpiry < new Date())
-    return res.status(400).json({ success: false, message: 'Code expired or invalid.' });
+  try {
+    const { email, otp, newPassword } = req.body;
+    const user = await User.findOne({ email: email?.toLowerCase().trim() });
+    if (!user || !user.resetOtp || user.resetOtpExpiry < new Date())
+      return res.status(400).json({ success: false, message: 'Code expired or invalid.' });
 
-  if (user.resetOtp !== otp) {
-    user.resetOtp = null; user.resetOtpExpiry = null; await user.save();
-    return res.status(401).json({ success: false, message: 'Invalid code. Destroyed for security.' });
+    if (user.resetOtp !== otp) {
+      user.resetOtp = null; user.resetOtpExpiry = null; await user.save();
+      return res.status(401).json({ success: false, message: 'Invalid code. Destroyed for security.' });
+    }
+
+    const cleanPwd = newPassword?.trim();
+    if (!cleanPwd || cleanPwd.length < 6)
+      return res.status(400).json({ success: false, message: 'Password must be at least 6 chars.' });
+
+    user.password = hashPwd(cleanPwd);
+    user.resetOtp = null;
+    user.resetOtpExpiry = null;
+    adminSessions.delete(user._id.toString());
+    await user.save();
+
+    res.json({ success: true, message: 'Password reset successfully.' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Server error during password reset.' });
   }
-
-  const cleanPwd = newPassword?.trim();
-  if (!cleanPwd || cleanPwd.length < 6)
-    return res.status(400).json({ success: false, message: 'Password must be at least 6 chars.' });
-
-  user.password = hashPwd(cleanPwd);
-  user.resetOtp = null;
-  user.resetOtpExpiry = null;
-  adminSessions.delete(user._id.toString());
-  await user.save();
-
-  res.json({ success: true, message: 'Password reset successfully.' });
 });
 
 // ============================================================
@@ -371,44 +381,49 @@ app.post('/api/auth/reset-password', async (req, res) => {
 // ============================================================
 
 app.post('/api/checkout', async (req, res) => {
-  const { email, courseIds } = req.body;
-  if (!courseIds || courseIds.length === 0) return res.status(400).json({ success: false, message: 'No courses provided.' });
+  try {
+    const { email, courseIds } = req.body;
+    if (!courseIds || courseIds.length === 0) return res.status(400).json({ success: false, message: 'No courses provided.' });
 
-  const user = await User.findOne({ email: email?.toLowerCase().trim() });
-  if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+    const user = await User.findOne({ email: email?.toLowerCase().trim() });
+    if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
 
-  // STRICT VALIDATION: Ensure all requested courses actually exist and are NOT hidden
-  const validCourses = await Course.find({ _id: { $in: courseIds }, isHidden: { $ne: true } });
-  const validCourseIds = validCourses.map(c => c._id.toString());
+    // STRICT VALIDATION: Ensure all requested courses actually exist and are NOT hidden
+    const validCourses = await Course.find({ _id: { $in: courseIds }, isHidden: { $ne: true } });
+    const validCourseIds = validCourses.map(c => c._id.toString());
 
-  if (validCourseIds.length === 0) {
-    return res.status(400).json({ success: false, message: 'Invalid or hidden courses cannot be purchased.' });
-  }
-
-  let totalAmount = 0;
-  validCourses.forEach(c => {
-    const match = c.price.match(/-?\d+/);
-    const num = match ? parseInt(match[0], 10) : 0;
-    totalAmount += Math.max(0, num);
-  });
-
-  // ARCHITECTURAL UPGRADE: Financial Ledger
-  await Order.create({
-    userId: user._id,
-    courseIds: validCourseIds,
-    totalAmount
-  });
-
-  validCourseIds.forEach(id => {
-    if (!user.purchasedCourses.find(c => c.courseId.toString() === id)) {
-      user.purchasedCourses.push({ courseId: id, progress: 0, completed: false });
+    if (validCourseIds.length === 0) {
+      return res.status(400).json({ success: false, message: 'Invalid or hidden courses cannot be purchased.' });
     }
-  });
-  await user.save();
-  await user.populate('purchasedCourses.courseId', 'title slug image');
 
-  const safeUser = { _id: user._id, name: user.name, email: user.email, isAdmin: user.isAdmin, adminInvitePending: user.adminInvitePending, adminInvitedBy: user.adminInvitedBy, purchasedCourses: user.purchasedCourses };
-  res.json({ success: true, user: safeUser });
+    let totalAmount = 0;
+    validCourses.forEach(c => {
+      const match = c.price.match(/-?\d+/);
+      const num = match ? parseInt(match[0], 10) : 0;
+      totalAmount += Math.max(0, num);
+    });
+
+    // ARCHITECTURAL UPGRADE: Financial Ledger
+    await Order.create({
+      userId: user._id,
+      courseIds: validCourseIds,
+      totalAmount
+    });
+
+    validCourseIds.forEach(id => {
+      if (!user.purchasedCourses.find(c => c.courseId.toString() === id)) {
+        user.purchasedCourses.push({ courseId: id, progress: 0, completed: false });
+      }
+    });
+    await user.save();
+    await user.populate('purchasedCourses.courseId', 'title slug image');
+
+    const safeUser = { _id: user._id, name: user.name, email: user.email, isAdmin: user.isAdmin, adminInvitePending: user.adminInvitePending, adminInvitedBy: user.adminInvitedBy, purchasedCourses: user.purchasedCourses };
+    res.json({ success: true, user: safeUser });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Server error during checkout.' });
+  }
 });
 
 // ============================================================
@@ -460,19 +475,24 @@ app.get('/api/admin/users', isAdmin, async (req, res) => {
 
 // Update student progress
 app.put('/api/admin/users/:userId/progress', isAdmin, async (req, res) => {
-  const { courseId, progress, completed } = req.body;
-  const user = await User.findById(req.params.userId);
-  if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+  try {
+    const { courseId, progress, completed } = req.body;
+    const user = await User.findById(req.params.userId);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
 
-  // BOUNDARY CHECK: Ensure progress is between 0 and 100
-  const safeProgress = Math.max(0, Math.min(100, parseInt(progress) || 0));
+    // BOUNDARY CHECK: Ensure progress is between 0 and 100
+    const safeProgress = Math.max(0, Math.min(100, parseInt(progress) || 0));
 
-  const course = user.purchasedCourses.find(c => String(c.courseId) === String(courseId));
-  if (!course) return res.status(404).json({ success: false, message: 'This student does not own that course.' });
-  course.progress = safeProgress;
-  course.completed = Boolean(completed) || safeProgress === 100;
-  await user.save();
-  res.json({ success: true });
+    const course = user.purchasedCourses.find(c => String(c.courseId) === String(courseId));
+    if (!course) return res.status(404).json({ success: false, message: 'This student does not own that course.' });
+    course.progress = safeProgress;
+    course.completed = Boolean(completed) || safeProgress === 100;
+    await user.save();
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Server error updating progress.' });
+  }
 });
 
 
@@ -511,35 +531,40 @@ app.post('/api/admin/invite', isAdmin, async (req, res) => {
 
 // User approves or declines admin invite
 app.post('/api/admin/respond-invite', async (req, res) => {
-  const { userId, accept, password } = req.body;
-  if (!password) return res.status(400).json({ success: false, message: 'Password is required to respond to invite.' });
+  try {
+    const { userId, accept, password } = req.body;
+    if (!password) return res.status(400).json({ success: false, message: 'Password is required to respond to invite.' });
 
-  if (!await verifyPassword(userId, password))
-    return res.status(401).json({ success: false, message: 'Invalid password.' });
+    if (!await verifyPassword(userId, password))
+      return res.status(401).json({ success: false, message: 'Invalid password.' });
 
-  const user = await User.findById(userId);
-  if (!user || !user.adminInvitePending)
-    return res.status(400).json({ success: false, message: 'No pending invite found.' });
+    const user = await User.findById(userId);
+    if (!user || !user.adminInvitePending)
+      return res.status(400).json({ success: false, message: 'No pending invite found.' });
 
-  if (accept) {
-    user.isAdmin            = true;
-    user.adminInvitePending = false;
-    user.adminInvitedBy     = null;
-    await user.save();
+    if (accept) {
+      user.isAdmin            = true;
+      user.adminInvitePending = false;
+      user.adminInvitedBy     = null;
+      await user.save();
 
-    // Immediately issue an admin session token — no re-login needed
-    const token = generateToken();
-    adminSessions.set(user._id.toString(), token);
+      // Immediately issue an admin session token — no re-login needed
+      const token = generateToken();
+      adminSessions.set(user._id.toString(), token);
 
-    const safeUser = { _id: user._id, name: user.name, email: user.email, isAdmin: true, adminInvitePending: false, adminInvitedBy: null, purchasedCourses: user.purchasedCourses, adminToken: token };
-    return res.json({ success: true, user: safeUser, message: 'You are now an Admin! The Admin Panel is now available in your navigation bar.' });
-  } else {
-    user.adminInvitePending = false;
-    user.adminInvitedBy     = null;
-    await user.save();
+      const safeUser = { _id: user._id, name: user.name, email: user.email, isAdmin: true, adminInvitePending: false, adminInvitedBy: null, purchasedCourses: user.purchasedCourses, adminToken: token };
+      return res.json({ success: true, user: safeUser, message: 'You are now an Admin! The Admin Panel is now available in your navigation bar.' });
+    } else {
+      user.adminInvitePending = false;
+      user.adminInvitedBy     = null;
+      await user.save();
 
-    const safeUser = { _id: user._id, name: user.name, email: user.email, isAdmin: false, adminInvitePending: false, adminInvitedBy: null, purchasedCourses: user.purchasedCourses };
-    return res.json({ success: true, user: safeUser, message: 'Invite declined.' });
+      const safeUser = { _id: user._id, name: user.name, email: user.email, isAdmin: false, adminInvitePending: false, adminInvitedBy: null, purchasedCourses: user.purchasedCourses };
+      return res.json({ success: true, user: safeUser, message: 'Invite declined.' });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Server error responding to invite.' });
   }
 });
 
