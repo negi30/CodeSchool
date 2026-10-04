@@ -329,6 +329,26 @@ export default function Home({ user, updateUser }) {
           </div>
         </div>
       </section>
+
+      <section className="bg-[#050505] py-24 relative z-10 border-t border-gray-900">
+        <div className="container mx-auto px-6 text-center flex flex-col items-center">
+          <div className="inline-block border border-accent/50 text-accent bg-accent/5 px-4 py-1 mb-6 font-mono uppercase tracking-widest text-xs font-bold">About the Creator</div>
+          <h2 className="text-4xl font-black uppercase tracking-tighter mb-6 text-white">
+            Neil Negi
+          </h2>
+          <p className="text-gray-400 font-mono max-w-xl mx-auto mb-10 text-sm">
+            Full-stack developer building scalable applications and agentic AI systems. Connect with me below.
+          </p>
+          <div className="flex justify-center items-center gap-6">
+            <a href="https://github.com/negi30" target="_blank" rel="noopener noreferrer" className="border-2 border-gray-800 bg-[#111] text-white px-8 py-3 hover:border-white transition-all font-mono uppercase text-sm font-bold tracking-widest">
+              GitHub
+            </a>
+            <a href="https://www.linkedin.com/in/neil-negi-6a6b86282" target="_blank" rel="noopener noreferrer" className="border-2 border-[#0a66c2]/50 bg-[#0a66c2]/10 text-[#0a66c2] px-8 py-3 hover:border-[#0a66c2] hover:bg-[#0a66c2] hover:text-white transition-all font-mono uppercase text-sm font-bold tracking-widest">
+              LinkedIn
+            </a>
+          </div>
+        </div>
+      </section>
     </>
   );
 }
