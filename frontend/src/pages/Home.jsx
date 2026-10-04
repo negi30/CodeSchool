@@ -313,8 +313,8 @@ export default function Home({ user, updateUser }) {
             </div>
             
             <div className="bg-accent rounded-2xl overflow-hidden aspect-[3/4] relative border-4 border-black flex flex-col justify-center items-center p-8 text-left">
-              <h3 className="text-4xl font-black uppercase mb-4 leading-none">01<br/>Mil</h3>
-              <p className="font-bold">Lines of code written by our alumni.</p>
+              <h3 className="text-4xl font-black uppercase mb-4 leading-none text-center">1M+<br/>LOC</h3>
+              <p className="font-bold text-center">Lines of code written by our alumni.</p>
             </div>
             
             <div className="bg-gray-300 rounded-2xl overflow-hidden aspect-[4/3] relative border-4 border-black group">

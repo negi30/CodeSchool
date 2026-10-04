@@ -92,7 +92,7 @@ mongoose.connect(process.env.MONGO_URI).then(async () => {
   if (courseCount === 0) {
     await Course.insertMany([
       { slug: 'agentic-ai-2026',    title: 'Gen & Agentic AI Cohort',    price: '₹7999', badge: 'Job Ready!', schedule: 'Sat-Sun (10:00 AM)', certificate: 'Yes', language: 'Hinglish', classType: 'Live Classes',      image: '/images/ai.webp',      features: ['Build Autonomous AI Agents','LangChain, LlamaIndex','RAG Implementation','Deploy Production LLM Apps','Startup Funding'] },
-      { slug: 'ml-course-2026',     title: 'Machine Learning Deep Dive', price: '₹5999', badge: 'Trending',  schedule: 'Mon-Wed-Fri (7:00 PM)', certificate: 'Yes', language: 'English',  classType: 'Live Classes',      image: '/images/machine.webp', features: ['200+ hours of live training','Scikit-Learn, TensorFlow','Build Recommendation Systems','Math Foundations','Kaggle Mentorship'] },
+      { slug: 'ml-course-2026',     title: 'Machine Learning Deep Dive', price: '₹5999', badge: 'Trending',  schedule: 'Mon-Wed-Fri (7:00 PM)', certificate: 'Yes', language: 'English',  classType: 'Live Classes',      image: '/images/machine.jpg', features: ['200+ hours of live training','Scikit-Learn, TensorFlow','Build Recommendation Systems','Math Foundations','Kaggle Mentorship'] },
       { slug: 'fullstack-mern-2026',title: 'Full Stack Web Mastery',     price: '₹4999', badge: 'Bestseller',schedule: 'Mon-Sat (8:30 PM)',     certificate: 'Yes', language: 'Hinglish', classType: 'Live & Recorded', image: '/images/webdev.webp',  features: ['MERN Stack + Next.js','Build 10 Real SaaS Products','System Design & Microservices','AWS & Docker','100% Placement'] }
     ]);
     console.log('✅ Seeded initial courses!');

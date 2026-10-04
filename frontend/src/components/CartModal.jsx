@@ -94,7 +94,7 @@ export default function CartModal({ isOpen, onClose, cart, removeFromCart, user,
               {!user && (
                 <div className="bg-[#111] border border-gray-800 p-6 flex flex-col items-center">
                   <p className="text-gray-400 font-mono mb-6 text-sm italic">
-                    "Your cart is as empty as a developer's coffee cup at 3 AM."
+                    "Empty cart, full potential."
                   </p>
                   <button
                     onClick={() => { onClose(); openAuth(); }}
