@@ -106,7 +106,12 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
           {!isAdmin2FA && mode !== MODES.FORGOT && (
             <div className="flex mb-6 border-b border-gray-800">
               {[MODES.LOGIN, MODES.SIGNUP].map(m => (
-                <button key={m} onClick={() => { setMode(m); clearErr(); setStep(1); }}
+                <button key={m} onClick={() => { 
+                  if (mode !== m) {
+                    setMode(m); clearErr(); setStep(1); 
+                    setEmail(''); setPassword(''); setName(''); setOtp(''); setNewPassword('');
+                  }
+                }}
                   className={`pb-2 flex-1 font-mono uppercase text-sm font-bold tracking-widest transition-colors ${mode === m ? 'text-accent border-b-2 border-accent' : 'text-gray-600 hover:text-gray-400'}`}>
                   {m === MODES.LOGIN ? 'Log In' : 'Sign Up'}
                 </button>
@@ -133,20 +138,20 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
 
           {/* ── LOGIN ── */}
           {!isAdmin2FA && mode === MODES.LOGIN && (
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div><label className={labelCls}>Email Address</label><input type="email" required value={email} onChange={e => setEmail(e.target.value)} className={inputCls()} placeholder="you@example.com" /></div>
-              <div><label className={labelCls}>Password</label><input type="password" required value={password} onChange={e => setPassword(e.target.value)} className={inputCls()} placeholder="••••••••" /></div>
+            <form onSubmit={handleLogin} className="space-y-4" autoComplete="off">
+              <div><label className={labelCls}>Email Address</label><input type="email" required value={email} onChange={e => setEmail(e.target.value)} className={inputCls()} placeholder="you@example.com" autoComplete="off" /></div>
+              <div><label className={labelCls}>Password</label><input type="password" required value={password} onChange={e => setPassword(e.target.value)} className={inputCls()} placeholder="••••••••" autoComplete="off" /></div>
               <button type="submit" className="w-full bg-accent text-black font-black uppercase tracking-widest py-4 hover:bg-white transition-all">Log In</button>
-              <button type="button" onClick={() => { setMode(MODES.FORGOT); setStep(1); clearErr(); }} className="w-full text-center text-gray-500 hover:text-accent font-mono text-sm transition-colors pt-1">Forgot Password?</button>
+              <button type="button" onClick={() => { setMode(MODES.FORGOT); setStep(1); clearErr(); setEmail(''); setPassword(''); }} className="w-full text-center text-gray-500 hover:text-accent font-mono text-sm transition-colors pt-1">Forgot Password?</button>
             </form>
           )}
 
           {/* ── SIGN UP ── */}
           {!isAdmin2FA && mode === MODES.SIGNUP && step === 1 && (
-            <form onSubmit={handleSendSignupOtp} className="space-y-4">
-              <div><label className={labelCls}>Full Name</label><input type="text" required value={name} onChange={e => setName(e.target.value)} className={inputCls()} placeholder="John Doe" /></div>
-              <div><label className={labelCls}>Email Address</label><input type="email" required value={email} onChange={e => setEmail(e.target.value)} className={inputCls()} placeholder="you@example.com" /></div>
-              <div><label className={labelCls}>Password</label><input type="password" required value={password} onChange={e => setPassword(e.target.value)} className={inputCls()} placeholder="At least 6 characters" /></div>
+            <form onSubmit={handleSendSignupOtp} className="space-y-4" autoComplete="off">
+              <div><label className={labelCls}>Full Name</label><input type="text" required value={name} onChange={e => setName(e.target.value)} className={inputCls()} placeholder="John Doe" autoComplete="off" /></div>
+              <div><label className={labelCls}>Email Address</label><input type="email" required value={email} onChange={e => setEmail(e.target.value)} className={inputCls()} placeholder="you@example.com" autoComplete="off" /></div>
+              <div><label className={labelCls}>Password</label><input type="password" required value={password} onChange={e => setPassword(e.target.value)} className={inputCls()} placeholder="At least 6 characters" autoComplete="new-password" /></div>
               <button type="submit" className="w-full border-2 border-accent text-accent font-black uppercase tracking-widest py-4 hover:bg-accent hover:text-black transition-all">Send Verification Code</button>
             </form>
           )}
@@ -166,7 +171,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }) {
             <form onSubmit={handleSendResetOtp} className="space-y-4">
               <div><label className={labelCls}>Registered Email</label><input type="email" required value={email} onChange={e => setEmail(e.target.value)} className={inputCls()} placeholder="you@example.com" /></div>
               <button type="submit" className="w-full border-2 border-accent text-accent font-black uppercase tracking-widest py-4 hover:bg-accent hover:text-black transition-all">Send Reset Code</button>
-              <button type="button" onClick={() => { setMode(MODES.LOGIN); setStep(1); clearErr(); }} className="w-full text-center text-gray-500 hover:text-accent font-mono text-sm transition-colors">← Back to Log In</button>
+              <button type="button" onClick={() => { setMode(MODES.LOGIN); setStep(1); clearErr(); setEmail(''); setPassword(''); }} className="w-full text-center text-gray-500 hover:text-accent font-mono text-sm transition-colors">← Back to Log In</button>
             </form>
           )}
 
