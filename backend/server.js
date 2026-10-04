@@ -309,9 +309,16 @@ app.post('/api/auth/verify-otp', async (req, res) => {
   }
   delete pendingSignups[key];
 
-  const user = await User.create({ name: cleanName, email: key, password: hashPwd(cleanPwd) });
-  const safeUser = { _id: user._id, name: user.name, email: user.email, isAdmin: user.isAdmin, adminInvitePending: user.adminInvitePending, purchasedCourses: user.purchasedCourses };
-  res.json({ success: true, user: safeUser });
+  try {
+    const user = await User.create({ name: cleanName, email: key, password: hashPwd(cleanPwd) });
+    const safeUser = { _id: user._id, name: user.name, email: user.email, isAdmin: user.isAdmin, adminInvitePending: user.adminInvitePending, purchasedCourses: user.purchasedCourses };
+    res.json({ success: true, user: safeUser });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({ success: false, message: 'An account with this email already exists.' });
+    }
+    res.status(500).json({ success: false, message: 'Server error during account creation.' });
+  }
 });
 
 // --- FORGOT PASSWORD: SEND OTP ---
