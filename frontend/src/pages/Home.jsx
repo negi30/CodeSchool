@@ -303,7 +303,7 @@ export default function Home({ user, updateUser }) {
           
           <div className="columns-1 md:columns-3 gap-6 max-w-5xl mx-auto space-y-6">
             <div className="bg-gray-300 rounded-2xl overflow-hidden aspect-[3/4] relative border-4 border-black group">
-              <img src="/images/success1.webp" className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" alt="Student 1" />
+              <img src="/images/google.jpg" className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" alt="Student 1" />
               <div className="absolute bottom-4 left-4 bg-accent text-black font-black px-3 py-1 border-2 border-black uppercase text-sm -rotate-3">Hired @ Google</div>
             </div>
             
@@ -313,8 +313,8 @@ export default function Home({ user, updateUser }) {
             </div>
             
             <div className="bg-accent rounded-2xl overflow-hidden aspect-[3/4] relative border-4 border-black flex flex-col justify-center items-center p-8 text-left">
-              <h3 className="text-4xl font-black uppercase mb-4 leading-none text-center">1M+<br/>LOC</h3>
-              <p className="font-bold text-center">Lines of code written by our alumni.</p>
+              <h3 className="text-4xl font-black uppercase mb-4 leading-none text-center">2500+</h3>
+              <p className="font-bold text-center">Students placed in top tech companies.</p>
             </div>
             
             <div className="bg-gray-300 rounded-2xl overflow-hidden aspect-[4/3] relative border-4 border-black group">
