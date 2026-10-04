@@ -120,8 +120,33 @@ const transporter = nodemailer.createTransport({
   auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
 });
 
-const sendMail = (to, subject, html) =>
-  transporter.sendMail({ from: `"CodeSchool" <${process.env.EMAIL_USER}>`, to, subject, html });
+// Render's free tier blocks outbound SMTP (ports 25/465/587), so in production
+// we send over HTTPS via Brevo's API. Locally (no BREVO_API_KEY) we use Gmail SMTP.
+const sendMail = async (to, subject, html) => {
+  if (process.env.BREVO_API_KEY) {
+    const r = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'api-key': process.env.BREVO_API_KEY,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        sender: { name: 'CodeSchool', email: process.env.EMAIL_USER },
+        to: [{ email: to }],
+        subject,
+        htmlContent: html
+      })
+    });
+    if (!r.ok) {
+      const body = await r.text();
+      console.error('Brevo send failed:', r.status, body);
+      throw new Error(`Email API error ${r.status}`);
+    }
+    return r.json();
+  }
+  return transporter.sendMail({ from: `"CodeSchool" <${process.env.EMAIL_USER}>`, to, subject, html });
+};
 
 // Per-user admin session tokens: Map<userId, token>
 const adminSessions = new Map();
