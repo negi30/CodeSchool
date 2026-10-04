@@ -38,8 +38,7 @@ const userSchema = new mongoose.Schema({
   resetOtpExpiry:      { type: Date,   default: null },
 }, { timestamps: true });
 
-// INDEX: Speeds up login queries and admin searches
-userSchema.index({ email: 1 });
+// INDEX: Speeds up admin searches (email index is automatically created by unique: true)
 userSchema.index({ isAdmin: 1 });
 
 const User = mongoose.model('User', userSchema);
