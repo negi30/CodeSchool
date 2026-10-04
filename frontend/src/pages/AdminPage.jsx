@@ -42,7 +42,13 @@ export default function AdminPage({ user }) {
     setLoading(false);
   };
 
-  const promptPwd = (msg) => prompt(`🔒 ${msg}\n\nEnter your Admin Password to confirm:`);
+  const [pwdPrompt, setPwdPrompt] = useState(null);
+
+  const promptPwd = (msg) => {
+    return new Promise((resolve) => {
+      setPwdPrompt({ message: msg, resolve });
+    });
+  };
 
   // Helper to instantly kick out admins if token is revoked during session
   const checkSecurity = (data) => {
@@ -68,7 +74,7 @@ export default function AdminPage({ user }) {
   // ── ADD COURSE ───────────────────────────────────────────────
   const handleAddCourse = async (e) => {
     e.preventDefault();
-    const pwd = promptPwd('Add New Course');
+    const pwd = await promptPwd('Add New Course');
     if (!pwd) return;
     
     // SLUG GENERATION: Convert title to URL-safe string
@@ -85,7 +91,7 @@ export default function AdminPage({ user }) {
   // ── EDIT COURSE ──────────────────────────────────────────────
   const handleEditCourse = async (e) => {
     e.preventDefault();
-    const pwd = promptPwd('Save Course Changes');
+    const pwd = await promptPwd('Save Course Changes');
     if (!pwd) return;
     const feats = Array.isArray(editingCourse.features) ? editingCourse.features : editingCourse.features.split(',').map(f => f.trim()).filter(f => f.length > 0);
     const res   = await fetch(`/api/admin/courses/${editingCourse._id}`, {
@@ -99,7 +105,7 @@ export default function AdminPage({ user }) {
 
   // ── TOGGLE HIDE ──────────────────────────────────────────────
   const handleToggleHide = async (courseId, isHidden) => {
-    const pwd = promptPwd(`${isHidden ? 'Unhide' : 'Hide'} Course`);
+    const pwd = await promptPwd(`${isHidden ? 'Unhide' : 'Hide'} Course`);
     if (!pwd) return;
     const res  = await fetch(`/api/admin/courses/${courseId}`, { method: 'PUT', headers, body: JSON.stringify({ isHidden: !isHidden, password: pwd }) });
     const data = await res.json();
@@ -110,7 +116,7 @@ export default function AdminPage({ user }) {
   // ── DELETE COURSE ────────────────────────────────────────────
   const handleDeleteCourse = async (courseId) => {
     if (!window.confirm('This will permanently delete the course. Continue?')) return;
-    const pwd = promptPwd('Delete Course (Permanent)');
+    const pwd = await promptPwd('Delete Course (Permanent)');
     if (!pwd) return;
     const res  = await fetch(`/api/admin/courses/${courseId}`, { method: 'DELETE', headers, body: JSON.stringify({ password: pwd }) });
     const data = await res.json();
@@ -131,7 +137,7 @@ export default function AdminPage({ user }) {
   // ── REVOKE ADMIN ─────────────────────────────────────────────
   const handleRevokeAdmin = async (targetUserId, targetName) => {
     if (!window.confirm(`Revoke admin access for ${targetName}?`)) return;
-    const pwd = promptPwd(`Revoke Admin: ${targetName}`);
+    const pwd = await promptPwd(`Revoke Admin: ${targetName}`);
     if (!pwd) return;
     const res  = await fetch(`/api/admin/revoke/${targetUserId}`, { method: 'PUT', headers, body: JSON.stringify({ password: pwd }) });
     const data = await res.json();
@@ -146,6 +152,50 @@ export default function AdminPage({ user }) {
 
   return (
     <div className="min-h-screen container mx-auto px-6 py-12 relative z-10">
+      {/* ── CUSTOM PASSWORD MODAL ── */}
+      {pwdPrompt && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-[9999]">
+          <div className="bg-[#0a0a0a] border-2 border-red-500 p-8 w-full max-w-md shadow-[0_0_50px_rgba(255,0,0,0.15)] relative">
+            <h3 className="text-xl font-black uppercase text-red-500 mb-2 flex items-center gap-2"><ShieldAlert size={20}/> Admin Authorization</h3>
+            <p className="text-gray-400 font-mono text-sm mb-6 uppercase tracking-widest">{pwdPrompt.message}</p>
+            <input 
+              type="password" 
+              autoFocus
+              id="admin-pwd-input"
+              className="w-full bg-[#111] border border-gray-800 p-4 text-white font-mono mb-6 focus:border-red-500 outline-none transition-colors" 
+              placeholder="••••••••"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  const val = e.target.value;
+                  setPwdPrompt(null);
+                  pwdPrompt.resolve(val);
+                } else if (e.key === 'Escape') {
+                  setPwdPrompt(null);
+                  pwdPrompt.resolve(null);
+                }
+              }}
+            />
+            <div className="flex gap-4">
+              <button 
+                onClick={() => {
+                  const val = document.getElementById('admin-pwd-input').value;
+                  setPwdPrompt(null);
+                  pwdPrompt.resolve(val);
+                }} 
+                className="flex-1 bg-red-500 text-black font-black uppercase tracking-widest py-3 hover:bg-white transition-all"
+              >
+                Confirm
+              </button>
+              <button 
+                onClick={() => { setPwdPrompt(null); pwdPrompt.resolve(null); }} 
+                className="flex-1 border border-gray-600 text-gray-400 font-black uppercase tracking-widest py-3 hover:border-white hover:text-white transition-all"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div className="flex flex-wrap items-center gap-4 mb-12 border-b-2 border-red-500/30 pb-6">
         <ShieldAlert size={48} className="text-red-500" />
