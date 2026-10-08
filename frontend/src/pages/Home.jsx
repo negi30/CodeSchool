@@ -5,13 +5,25 @@ import { useNavigate } from 'react-router-dom';
 
 export default function Home({ user, updateUser }) {
   const [courses, setCourses] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     fetch('/api/courses')
-      .then(res => res.json())
-      .then(data => setCourses(data))
-      .catch(err => console.error(err));
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to load courses');
+        return res.json();
+      })
+      .then(data => {
+        setCourses(Array.isArray(data) ? data : []);
+        setIsLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setError('Server is waking up or temporarily down. Please refresh in a moment.');
+        setIsLoading(false);
+      });
   }, []);
 
   const youtubeVideos = [
@@ -235,7 +247,20 @@ export default function Home({ user, updateUser }) {
             <Zap className="text-accent animate-pulse" size={40} />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {courses.length > 0 ? courses.map((course, i) => (
+            {isLoading ? (
+              <div className="col-span-3 text-center text-accent font-mono py-12 border-2 border-accent border-dashed flex flex-col items-center justify-center">
+                <Zap className="text-accent animate-pulse mb-4" size={32} />
+                <p className="text-xl font-bold animate-pulse mb-2">Waking up the server...</p>
+                <p className="text-sm text-gray-500">(This can take up to 50 seconds on the free tier)</p>
+              </div>
+            ) : error ? (
+              <div className="col-span-3 text-center text-red-500 font-mono py-12 border-2 border-red-500 border-dashed">
+                <ShieldAlert size={32} className="mx-auto mb-4" />
+                <p className="text-xl font-bold mb-2">Connection Error</p>
+                <p className="text-sm">{error}</p>
+                <button onClick={() => window.location.reload()} className="mt-4 bg-red-500 text-black px-6 py-2 uppercase font-black hover:bg-white transition-colors">Try Again</button>
+              </div>
+            ) : courses.length > 0 ? courses.map((course, i) => (
               <motion.div 
                 key={course._id} initial={{ opacity: 0, y: 50 }} whileInView={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }} viewport={{ once: true }}
                 className="bg-[#0a0a0a] border border-gray-800 p-6 hover:border-accent transition-all group cursor-pointer relative overflow-hidden flex flex-col"
@@ -254,7 +279,9 @@ export default function Home({ user, updateUser }) {
                   </button>
                 </div>
               </motion.div>
-            )) : (<div className="col-span-3 text-center text-accent font-mono animate-pulse">Loading course data...</div>)}
+            )) : (
+              <div className="col-span-3 text-center text-gray-500 font-mono py-12">No courses available right now.</div>
+            )}
           </div>
         </div>
       </section>
